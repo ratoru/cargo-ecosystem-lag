@@ -7,7 +7,7 @@ import csv
 import parsing_git_commits
 from urllib.parse import urlparse
 
-access_token = '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'
+access_token = ''
 
 #Set up headers with the access token
 headers = {

@@ -1,7 +1,7 @@
 import requests
 import datetime
 
-access_token = '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'
+access_token = ''
 
 #Set up headers with the access token
 headers = {

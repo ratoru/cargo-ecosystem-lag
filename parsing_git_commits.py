@@ -44,8 +44,9 @@ def get_commit_details(commit_url):
         return None
 
 # Replace these with your own values
-owner = 'NoXF'
-repo = 'libwebp-sys'
+owner = 'jaredforth'
+repo = 'webp'
+vulnerable_dependency = 'libwebp-sys'
 patched_version = '0.9.3'
 
 # Get all commits from the specified repository
@@ -65,10 +66,15 @@ if all_commits:
             for file_info in files_affected:
                 if file_info['filename'] == 'Cargo.toml':
                     if 'patch' in file_info:
-                        if patched_version in file_info['patch']:
-                            print("Package update available on")
+                        s = "+" + vulnerable_dependency
+                        if s in file_info['patch'] and patched_version in file_info['patch']:
+                            print("found upgrade to patched version of dependency")
                             print(f"Date: {commit['commit']['author']['date']}")
                             print(f"Message: {commit['commit']['message']}")
+                            k = "-" + vulnerable_dependency
+                            index_old_version_dependency = file_info['patch'].find(k) + len(k) + 4
+                            print('old version of dependency: ')
+                            print(file_info['patch'][index_old_version_dependency:index_old_version_dependency+5])
                             
                             p = repo + '\"\n-version'
                             #the same commit diff may include the new version of the dependent

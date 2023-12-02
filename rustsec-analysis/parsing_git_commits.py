@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
 
-access_token = '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'
+access_token = ''
 
 #Set up headers with the access token
 headers = {
@@ -16,8 +16,6 @@ def compare_cargo_versions(A, B):
     Returns:
         int: -1 if version A comes before version B, 0 if they're equal, and 1 if version A comes after version B.
     """
-    print(A)
-    print(B)
     version_A = list(map(int, A.split('.')))
     version_B = list(map(int, B.split('.')))
 
@@ -92,19 +90,25 @@ repo = 'webp' #NoXF
 vulnerable_dependency = 'libwebp-sys'
 patched_version = '0.9.3'
 
-def get_new_dependency_version(file_info, s):
-    index_dependency = file_info['patch'].find(s)
-    #print(file_info['patch'])
-    substr = file_info['patch'][index_dependency+len(vulnerable_dependency)+4:]
-    #print(substr)
-    dependency_version = (substr[:substr.find('\n')]).strip('\"')
-    #need to account for case where this info is structured as a json
-    if 'version =' in dependency_version:
-        i = dependency_version.find('version =')
-        n = i + len('version =') + 2
-        v = dependency_version[n:]
-        i_ = v.find('\"')
-        dependency_version = v[:i_]
+def get_dependency_version(file_info, s):
+    try:
+        index_dependency = file_info['patch'].find(s)
+        #print(file_info['patch'])
+        substr = file_info['patch'][index_dependency+len(vulnerable_dependency)+4:]
+        #print(substr)
+        dependency_version = (substr[:substr.find('\n')]).strip('\"')
+        #need to account for case where this info is structured as a json
+        if 'version =' in dependency_version:
+            i = dependency_version.find('version =')
+            n = i + len('version =') + 2
+            v = dependency_version[n:]
+            i_ = v.find('\"')
+            dependency_version = v[:i_]
+        return dependency_version
+
+    except:
+        return None
+    
 
 
 #return object {"found_patch": T/F, "dependency_version_old": , "dependency_version_new": , "new_version": , "time_upgrade": , "commit_msg" }
@@ -128,12 +132,22 @@ def get_info_about_dependency(owner, repo, vulnerable_dependency, patched_versio
                 for file_info in files_affected:
                     if file_info['filename'] == 'Cargo.toml':
                         if 'patch' in file_info:
-                            s = "+" + vulnerable_dependency + " "
-                            if s in file_info['patch']:
-                                dependency_version = get_new_dependency_version(file_info, s)
+                            s_new = "+" + vulnerable_dependency + " "
+                            s_old = "-" + vulnerable_dependency + " "
+                            if s_new in file_info['patch']:
+                                dependency_version_new = get_dependency_version(file_info, s_new)
+                                dependency_version_old = get_dependency_version(file_info, s_old)
 
-                                #need to make sure that prior version wasn't already a patched version
-                                if compare_cargo_versions(dependency_version, patched_version) >= 0:
+                                if dependency_version_old == None:
+                                    print("could not get old dependency version")
+                                if dependency_version_new == None:
+                                    print("could not get new dependency version")
+                                
+                                if dependency_version_old == None or dependency_version_new == None:
+                                    break
+                                
+                                #check that this commit switched dependency from unpatched to patched version  
+                                if compare_cargo_versions(dependency_version_old, patched_version) < 0 and compare_cargo_versions(dependency_version_new, patched_version) >= 0:
                                     
                                     #print("found upgrade to patched version of dependency")
                                     res["found_patch"] = True
@@ -145,7 +159,7 @@ def get_info_about_dependency(owner, repo, vulnerable_dependency, patched_versio
 
                                     res["time_upgrade"] = commit['commit']['author']['date']
                                     res["commit_msg"] = commit['commit']['message']
-                                    res["dependency_version_new"] = dependency_version
+                                    res["dependency_version_new"] = dependency_version_new
 
                                     # print(f"Date: {commit['commit']['author']['date']}")
                                     # print(f"Message: {commit['commit']['message']}")

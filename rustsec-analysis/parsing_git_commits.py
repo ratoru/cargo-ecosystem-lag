@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime
+from urllib.parse import urlparse
 
 access_token = ''
 
@@ -49,7 +50,10 @@ def compare_date_strings(date_str1, date_str2):
     else:
         return 1
 
-def get_all_commits(owner, repo):
+def get_all_commits(github_link):
+    parsed_url = urlparse(github_link)
+    repo = parsed_url.path.split("/")[-1]
+    owner = parsed_url.path.split("/")[-2]
     # Define the API endpoint
     url = f'https://api.github.com/repos/{owner}/{repo}/commits'
 
@@ -63,6 +67,7 @@ def get_all_commits(owner, repo):
         return commits
     else:
         # Error handling
+        print(url)
         print(f"Error: {response.status_code}")
         print(response.text)
         return None
@@ -108,14 +113,13 @@ def get_dependency_version(file_info, s):
 
     except:
         return None
-    
 
-
-#return object {"found_patch": T/F, "dependency_version_old": , "dependency_version_new": , "new_version": , "time_upgrade": , "commit_msg" }
-def get_info_about_dependency(owner, repo, vulnerable_dependency, patched_version):
+def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_version):
     # Get all commits from the specified repository
-    all_commits = get_all_commits(owner, repo)
+    all_commits = get_all_commits(github_link)
 
+    if not all_commits:
+        return {"dependency_patched":True, "dependent_on_vuln_version": False, "error" : "could not get commits from github"}
     # Print commit information
     res = {"dependency_patched":True, "dependent_on_vuln_version": False, "found_patch":False}
     
@@ -132,8 +136,9 @@ def get_info_about_dependency(owner, repo, vulnerable_dependency, patched_versio
                 for file_info in files_affected:
                     if file_info['filename'] == 'Cargo.toml':
                         if 'patch' in file_info:
-                            s_new = "+" + vulnerable_dependency + " "
-                            s_old = "-" + vulnerable_dependency + " "
+                            #print(file_info['patch'])
+                            s_new = "+" + vulnerable_dependency + " " 
+                            s_old = "-" + vulnerable_dependency + " " 
                             if s_new in file_info['patch']:
                                 dependency_version_new = get_dependency_version(file_info, s_new)
                                 dependency_version_old = get_dependency_version(file_info, s_old)
@@ -177,10 +182,10 @@ def get_info_about_dependency(owner, repo, vulnerable_dependency, patched_versio
                                         index_new_version = file_info['patch'].find(j) + len(j)
                                         res["new_version"] = file_info['patch'][index_new_version:index_new_version+5]
                                         #print(file_info['patch'][index_new_version:index_new_version+5])
-        
+    
     return res
 
-#get_info_about_dependency(owner, repo, vulnerable_dependency, patched_version)
+#get_info_about_dependency('https://github.com/jaredforth/webp', repo, vulnerable_dependency, patched_version)
 
 #data to collect:
 #Cargo.lock - see edits to it 

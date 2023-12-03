@@ -185,7 +185,40 @@ def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_
     
     return res
 
-#get_info_about_dependency('https://github.com/jaredforth/webp', repo, vulnerable_dependency, patched_version)
+#returns the date that the orginal vulnerable package was updated
+def get_date_of_patch(owner, repo, patched_version):
+    # Get all commits from the specified repository
+    all_commits = get_all_commits(owner, repo)
+
+    date = 'none'
+
+    if all_commits:
+        for commit in all_commits:
+            # print(f"Commit SHA: {commit['sha']}")
+            # print(f"Author: {commit['commit']['author']['name']}")
+            # print('-' * 50)
+
+            commit_details = get_commit_details(commit['url'])
+
+            files_affected = commit_details['files']
+            if files_affected:
+                for file_info in files_affected:
+                    if file_info['filename'] == 'Cargo.toml':
+                        if 'patch' in file_info:
+                            s_new = "+version = \"" + patched_version
+                            if s_new in file_info['patch']:
+                                date = commit['commit']['author']['date']
+                            
+    return date              
+
+owner = 'NoXF' 
+repo = 'libwebp-sys'
+patched_version = '0.9.3'
+
+print(get_date_of_patch(owner, repo, patched_version))
+
+
+#get_info_about_dependency(owner, repo, vulnerable_dependency, patched_version)
 
 #data to collect:
 #Cargo.lock - see edits to it 

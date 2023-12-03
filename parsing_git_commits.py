@@ -1,6 +1,6 @@
 import requests
 
-access_token = ''
+access_token = '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'
 
 #Set up headers with the access token
 headers = {

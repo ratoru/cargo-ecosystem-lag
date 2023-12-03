@@ -2,7 +2,7 @@ import requests
 from datetime import datetime
 from urllib.parse import urlparse
 
-access_token = ''
+access_token = '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'
 
 #Set up headers with the access token
 headers = {

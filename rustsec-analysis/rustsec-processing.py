@@ -7,7 +7,7 @@ import csv
 import parsing_git_commits
 from urllib.parse import urlparse
 
-access_token = ''
+access_token = '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'
 
 #Set up headers with the access token
 headers = {
@@ -231,31 +231,39 @@ def get_dependent_patch_info():
                         #if less than introduced -- this is where tilda and caret matter -- want to get range -- but let's actually just ignore them altogether 
                         if parsing_git_commits.compare_cargo_versions(dependent_on_version, introduced_version) == -1:
                             #dependent on a version that came before the bug was introduced
+                            print([id, package_name, dependent, {"dependency_patched":False, "dependent_on_vuln_version":False}])
                             csv_writer.writerow([id, package_name, dependent, {"dependency_patched":False, "dependent_on_vuln_version":False}])
                         else:
+                            print([id, package_name, dependent, {"dependency_patched":False,  "dependent_on_vuln_version":True}])
                             csv_writer.writerow([id, package_name, dependent, {"dependency_patched":False,  "dependent_on_vuln_version":True}])
                         continue
 
                     if parsing_git_commits.compare_cargo_versions(dependent_on_version, introduced_version) == -1:
                         #dependent on a version that came before the bug was introduced
+                        print([id, package_name, dependent, {"dependency_patched":True, "dependent_on_vuln_version":False}])
                         csv_writer.writerow([id, package_name, dependent, {"dependency_patched":True, "dependent_on_vuln_version":False}])
                     elif parsing_git_commits.compare_cargo_versions(dependent_on_version, patched_version) == -1:
                         #dependent on a version between introduced and fixed
+                        print([id, package_name, dependent, {"dependency_patched":True, "dependent_on_vuln_version":True}])
                         csv_writer.writerow([id, package_name, dependent, {"dependency_patched":True, "dependent_on_vuln_version":True}])
                     else:
                         if dependents[dependent]['github_url'] == '':
+                            print([id, package_name, dependent, {"error":"could not get github link"}])
                             csv_writer.writerow([id, package_name, dependent, {"error":"could not get github link"}])
                             continue
-                        parsed_url = urlparse(dependents[dependent]['github_url'])
-                        if dependent != parsed_url.path.split("/")[-1]:
-                            csv_writer.writerow([id, package_name, dependent, {"error":"github link does not match crate name"}])
-                            continue
+                        # parsed_url = urlparse(dependents[dependent]['github_url'])
+                        # if dependent != parsed_url.path.split("/")[-1]:
+                        #     print("github link does not match crate name")
+                        #     print(dependent)
+                        #     print(parsed_url.path.split("/")[-1])
+                        #     csv_writer.writerow([id, package_name, dependent, {"error":"github link does not match crate name"}])
+                        #     continue
                         dependent_info = parsing_git_commits.get_info_about_dependency(dependents[dependent]['github_url'], dependent, package_name, patched_version)
                         print([id, package_name, dependent, dependent_info])
                         csv_writer.writerow([id, package_name, dependent, dependent_info])
 
-process_rustsec_jsons() 
-#get_dependent_patch_info()
+#process_rustsec_jsons() 
+get_dependent_patch_info()
 
 
         

@@ -2,7 +2,7 @@ import requests
 from datetime import datetime
 from urllib.parse import urlparse
 
-access_token = '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'
+access_token = ''
 
 #Set up headers with the access token
 headers = {
@@ -50,10 +50,8 @@ def compare_date_strings(date_str1, date_str2):
     else:
         return 1
 
-def get_all_commits(github_link):
-    parsed_url = urlparse(github_link)
-    repo = parsed_url.path.split("/")[-1]
-    owner = parsed_url.path.split("/")[-2]
+def get_all_commits(owner, repo):
+    
     # Define the API endpoint
     url = f'https://api.github.com/repos/{owner}/{repo}/commits'
 
@@ -116,7 +114,10 @@ def get_dependency_version(file_info, s):
 
 def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_version):
     # Get all commits from the specified repository
-    all_commits = get_all_commits(github_link)
+    parsed_url = urlparse(github_link)
+    repo = parsed_url.path.split("/")[-1]
+    owner = parsed_url.path.split("/")[-2]
+    all_commits = get_all_commits(owner, repo)
 
     if not all_commits:
         return {"dependency_patched":True, "dependent_on_vuln_version": False, "error" : "could not get commits from github"}
@@ -190,7 +191,7 @@ def get_date_of_patch(owner, repo, patched_version):
     # Get all commits from the specified repository
     all_commits = get_all_commits(owner, repo)
 
-    date = 'none'
+    date = ''
 
     if all_commits:
         for commit in all_commits:
@@ -215,7 +216,7 @@ owner = 'NoXF'
 repo = 'libwebp-sys'
 patched_version = '0.9.3'
 
-print(get_date_of_patch(owner, repo, patched_version))
+#print(get_date_of_patch(owner, repo, patched_version))
 
 
 #get_info_about_dependency(owner, repo, vulnerable_dependency, patched_version)

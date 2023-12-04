@@ -7,7 +7,7 @@ import csv
 import parsing_git_commits
 from urllib.parse import urlparse
 
-access_token = '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'
+access_token = ''
 
 #Set up headers with the access token
 headers = {
@@ -175,6 +175,13 @@ def json_to_row(file_path: str):
         row.append(introduced)
         row.append(fixed)
 
+        if fixed != "":
+            date_patched = parsing_git_commits.get_date_of_patch(owner, repo, fixed)
+        else:
+            date_patched = ''
+        
+        row.append(date_patched)
+
         #get dependents using crates.io API
         #limitations: only current ones, not historical, must have cargo.toml
         dependents = get_dependents(name)
@@ -187,9 +194,9 @@ def process_rustsec_jsons():
     # Folder containing RustSec advisories in the OSV format
     folder_path = './advisory-db-osv/crates/'
     # Read in all vulnerabilities
-    first_row = ["id", "published", "name", "gh_owner", "gh_repo", "purl", "severity", "categories_vuln", "categories_package", "github_link", "introduced_version", "patched_version", "dependents"]
+    first_row = ["id", "published", "name", "gh_owner", "gh_repo", "purl", "severity", "categories_vuln", "categories_package", "github_link", "introduced_version", "patched_version", "date_of_patch", "dependents"]
 
-    with open('all_vulns_info3.cvs', 'w', newline='') as csv_file:
+    with open('all_vulns_info4.cvs', 'w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow(first_row)
 
@@ -209,7 +216,7 @@ def get_dependent_patch_info():
         csv_writer = csv.writer(csv_file)
         first_row = ["vuln_id", "vuln_package_name", "dependent_name", "dependent_info"]
         csv_writer.writerow(first_row)
-        with open('all_vulns_info3.cvs', 'r') as csv_file:
+        with open('all_vulns_info4.cvs', 'r') as csv_file:
             csv_reader = csv.reader(csv_file)
             first = True
             for row in csv_reader:
@@ -223,7 +230,7 @@ def get_dependent_patch_info():
                 if introduced_version[-2:] == '-0':
                     introduced_version = introduced_version[:-2]
                 
-                dependents = json.loads(row[12].replace("\'", "\""))
+                dependents = json.loads(row[13].replace("\'", "\""))
                 for dependent in dependents:
 
                     dependent_on_version = get_version_of_dependency(dependent, dependents[dependent]['version'], package_name)
@@ -262,8 +269,8 @@ def get_dependent_patch_info():
                         print([id, package_name, dependent, dependent_info])
                         csv_writer.writerow([id, package_name, dependent, dependent_info])
 
-#process_rustsec_jsons() 
-get_dependent_patch_info()
+process_rustsec_jsons() 
+#get_dependent_patch_info()
 
 
         

@@ -7,7 +7,7 @@ import csv
 import parsing_git_commits
 from urllib.parse import urlparse
 
-access_token = ''
+access_token = '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'
 
 #Set up headers with the access token
 headers = {
@@ -301,8 +301,8 @@ def get_dependent_patch_info():
                         print([id, package_name, dependent, dependent_info])
                         csv_writer.writerow([id, package_name, dependent, dependent_info])
 
-process_rustsec_jsons() 
-#get_dependent_patch_info()
+#process_rustsec_jsons() 
+get_dependent_patch_info()
 
 
         

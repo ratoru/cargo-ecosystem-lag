@@ -2,7 +2,7 @@ import requests
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-access_token = ''
+access_token = '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'
 
 #Set up headers with the access token
 headers = {
@@ -108,26 +108,29 @@ def get_commit_details(commit_url):
         return None
 
 # Replace these with your own values
-owner = 'jaredforth' #'libwebp-sys'
-repo = 'webp' #NoXF
-vulnerable_dependency = 'libwebp-sys'
-patched_version = '0.9.3'
+# owner = 'jaredforth' #'libwebp-sys'
+# repo = 'webp' #NoXF
+# vulnerable_dependency = 'libwebp-sys'
+# patched_version = '0.9.3'
 
-def get_dependency_version(file_info, s):
+def get_dependency_version(file_info, s, vulnerable_dependency):
     try:
         index_dependency = file_info['patch'].find(s)
         #print(file_info['patch'])
+
         substr = file_info['patch'][index_dependency+len(vulnerable_dependency)+4:]
         #print(substr)
+
         dependency_version = (substr[:substr.find('\n')]).strip('\"')
         #need to account for case where this info is structured as a json
         if 'version =' in dependency_version:
             i = dependency_version.find('version =')
             n = i + len('version =') + 2
             v = dependency_version[n:]
+            print(v)
             i_ = v.find('\"')
             dependency_version = v[:i_]
-        return dependency_version
+        return dependency_version.replace('^', '').replace('~', '')
 
     except:
         return None
@@ -163,21 +166,26 @@ def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_
                             s_new = "+" + vulnerable_dependency + " " 
                             s_old = "-" + vulnerable_dependency + " " 
                             if s_new in file_info['patch']:
-                                dependency_version_new = get_dependency_version(file_info, s_new)
-                                dependency_version_old = get_dependency_version(file_info, s_old)
+                                dependency_version_new = get_dependency_version(file_info, s_new, vulnerable_dependency)
+                                dependency_version_old = None
+                                if s_old in vulnerable_dependency:
+                                    dependency_version_old = get_dependency_version(file_info, s_old, vulnerable_dependency)
 
                                 if dependency_version_old == None:
                                     print("could not get old dependency version")
+                                    
                                 if dependency_version_new == None:
                                     print("could not get new dependency version")
-                                
-                                if dependency_version_old == None or dependency_version_new == None:
+                                    print(file_info['patch'])
                                     break
-                                  
-                                comparison1 = compare_cargo_versions(dependency_version_old, patched_version)
+                                
+                                comparison1 = None
+                                if dependency_version_old != None:
+                                    comparison1 = compare_cargo_versions(dependency_version_old, patched_version)
+
                                 comparison2 = compare_cargo_versions(dependency_version_new, patched_version)
                                 if comparison1 == None or comparison2 == None:
-                                    print(file_info['patch'])
+                                    #print(file_info['patch'])
                                     break
 
                                 #check that this commit switched dependency from unpatched to patched version

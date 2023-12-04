@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 access_token = ''
@@ -17,22 +17,26 @@ def compare_cargo_versions(A, B):
     Returns:
         int: -1 if version A comes before version B, 0 if they're equal, and 1 if version A comes after version B.
     """
-    version_A = list(map(int, A.split('.')))
-    version_B = list(map(int, B.split('.')))
+    try:
+        version_A = list(map(int, A.split('.')))
+        version_B = list(map(int, B.split('.')))
 
-    # Make sure both version lists have the same number of components
-    while len(version_A) < len(version_B):
-        version_A.append(0)
-    while len(version_B) < len(version_A):
-        version_B.append(0)
+        # Make sure both version lists have the same number of components
+        while len(version_A) < len(version_B):
+            version_A.append(0)
+        while len(version_B) < len(version_A):
+            version_B.append(0)
 
-    # Compare each component of the version
-    for a, b in zip(version_A, version_B):
-        if a < b:
-            return -1
-        elif a > b:
-            return 1
-    return 0
+        # Compare each component of the version
+        for a, b in zip(version_A, version_B):
+            if a < b:
+                return -1
+            elif a > b:
+                return 1
+        return 0
+    except Exception as e:
+        print(e)
+        return None
 
 #returns -1 if date1 came before date2, 0 if theyre the same, 1 if date1 came after date2
 def compare_date_strings(date_str1, date_str2):
@@ -41,6 +45,22 @@ def compare_date_strings(date_str1, date_str2):
     # Convert date strings to datetime objects
     date1 = datetime.strptime(date_str1, format_str)
     date2 = datetime.strptime(date_str2, format_str)
+
+    # Perform the comparison
+    if date1 < date2:
+        return -1
+    elif date1 == date2:
+        return 0
+    else:
+        return 1
+    
+def compare_date_strings2(date_str1, date_str2):
+    format_str1 = '%Y-%m-%dT%H:%M:%SZ'
+    format_str2 = '%Y-%m-%dT%H:%M:%S.%f%z'
+    
+    # Convert date strings to datetime objects
+    date1 = datetime.strptime(date_str1, format_str1).replace(tzinfo=timezone.utc)
+    date2 = datetime.strptime(date_str2, format_str2)
 
     # Perform the comparison
     if date1 < date2:
@@ -114,15 +134,17 @@ def get_dependency_version(file_info, s):
 
 def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_version):
     # Get all commits from the specified repository
+    if github_link[-4:] == '.git':
+        github_link = github_link[:-4]
     parsed_url = urlparse(github_link)
     repo = parsed_url.path.split("/")[-1]
     owner = parsed_url.path.split("/")[-2]
     all_commits = get_all_commits(owner, repo)
 
     if not all_commits:
-        return {"dependency_patched":True, "dependent_on_vuln_version": False, "error" : "could not get commits from github"}
+        return {"dependency_patched":True, "dependent_on_vuln_version": False, "created_after_patch":False, "error" : "could not get commits from github"}
     # Print commit information
-    res = {"dependency_patched":True, "dependent_on_vuln_version": False, "found_patch":False}
+    res = {"dependency_patched":True, "dependent_on_vuln_version": False, "created_after_patch":False, "found_patch":False}
     
     if all_commits:
         for commit in all_commits:
@@ -151,10 +173,15 @@ def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_
                                 
                                 if dependency_version_old == None or dependency_version_new == None:
                                     break
-                                
-                                #check that this commit switched dependency from unpatched to patched version  
-                                if compare_cargo_versions(dependency_version_old, patched_version) < 0 and compare_cargo_versions(dependency_version_new, patched_version) >= 0:
-                                    
+                                  
+                                comparison1 = compare_cargo_versions(dependency_version_old, patched_version)
+                                comparison2 = compare_cargo_versions(dependency_version_new, patched_version)
+                                if comparison1 == None or comparison2 == None:
+                                    print(file_info['patch'])
+                                    break
+
+                                #check that this commit switched dependency from unpatched to patched version
+                                if comparison1 < 0 and comparison2 >= 0:
                                     #print("found upgrade to patched version of dependency")
                                     res["found_patch"] = True
                                     print("found patch!")

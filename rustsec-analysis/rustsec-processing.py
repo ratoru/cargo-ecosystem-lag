@@ -213,18 +213,33 @@ def process_rustsec_jsons():
     # Read in all vulnerabilities
     first_row = ["id", "published", "name", "gh_owner", "gh_repo", "purl", "severity", "categories_vuln", "categories_package", "github_link", "introduced_version", "patched_version", "date_of_patch", "dependents"]
 
-    with open('all_vulns_info4.cvs', 'a', newline='') as csv_file:
-        csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(first_row)
+    with open('all_vulns_info5.cvs', 'r', newline='') as csv_file2:
+        csv_reader = csv.reader(csv_file2)
+        all_collected = []
+        first = True
+        for row in csv_reader:
+            if first:
+                first = False
+                continue
+            all_collected.append(row[0])
+        
 
-        skip = True
+    with open('all_vulns_info5.cvs', 'a', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        #csv_writer.writerow(first_row)
+
+
+        #skip = True
         for filename in os.listdir(folder_path):
             if filename.endswith('.json'):
-                if filename == 'RUSTSEC-2021-0067.json':
-                    skip = False
-                    continue
+                #if filename == 'RUSTSEC-2021-0098.json':
+                #    skip = False
+                #    continue
                 
-                if skip:
+                #if skip:
+                #    continue
+                if filename[:-len('.json')] in all_collected:
+                    print('already_parsed')
                     continue
 
                 # Construct the full path to the JSON file
@@ -301,8 +316,8 @@ def get_dependent_patch_info():
                         print([id, package_name, dependent, dependent_info])
                         csv_writer.writerow([id, package_name, dependent, dependent_info])
 
-#process_rustsec_jsons() 
-get_dependent_patch_info()
+process_rustsec_jsons() 
+#get_dependent_patch_info()
 
 
         

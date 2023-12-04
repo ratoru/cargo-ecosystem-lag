@@ -7,7 +7,7 @@ import csv
 import parsing_git_commits
 from urllib.parse import urlparse
 
-access_token = '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'
+access_token = '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'
 
 #Set up headers with the access token
 headers = {
@@ -252,11 +252,21 @@ def process_rustsec_jsons():
                     csv_writer.writerows(osv)
     
 def get_dependent_patch_info():
-    with open('dependent_patch_info.cvs', 'w', newline='') as csv_file:
+    already_seen = []
+    with open('dependent_patch_info.cvs', 'r', newline='') as csv_file2:
+        reader = csv.reader(csv_file2)
+        first = True
+        for row in reader:
+            if first:
+                first = False
+                continue
+            already_seen.append(row[0])
+
+    with open('dependent_patch_info.cvs', 'a', newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
-        first_row = ["vuln_id", "vuln_package_name", "dependent_name", "dependent_info"]
-        csv_writer.writerow(first_row)
-        with open('all_vulns_info3.cvs', 'r') as csv_file:
+        #first_row = ["vuln_id", "vuln_package_name", "dependent_name", "dependent_info"]
+        #csv_writer.writerow(first_row)
+        with open('all_vulns_info5.cvs', 'r') as csv_file:
             csv_reader = csv.reader(csv_file)
             first = True
             for row in csv_reader:
@@ -264,13 +274,23 @@ def get_dependent_patch_info():
                     first = False
                     continue
                 id = row[0]
+                if id in already_seen:
+                    print("duplicate")
+                    continue
                 package_name = row[2]
                 patched_version = row[11]
                 introduced_version = row[10]
                 if introduced_version[-2:] == '-0':
                     introduced_version = introduced_version[:-2]
                 
-                dependents = json.loads(row[12].replace("\'", "\""))
+                dependents = []
+                if row[13] != None and row[13] != "":
+                    try:
+                        dependents = json.loads(row[13].replace("\'", "\""))
+                    except Exception as e:
+                        print(e) 
+                        continue
+                        
                 for dependent in dependents:
                     dependent_on_version = get_version_of_dependency(dependent, dependents[dependent]['version'], package_name)
                     if patched_version == "":
@@ -296,7 +316,8 @@ def get_dependent_patch_info():
                         #crate created after dependency was patched
                         date_created = get_date_created(dependent)
                         #TO DO: replace row[1] with the date received from laura
-                        if date_created != None and parsing_git_commits.compare_date_strings2(row[1], date_created) == -1:
+                        date = row[12] if row[12] != "" and row[12] != None else row[1]
+                        if date_created != None and parsing_git_commits.compare_date_strings2(date, date_created) == -1:
                             print([id, package_name, dependent, {"dependency_patched":True, "dependent_on_vuln_version":False, "created_after_patch":True}])
                             csv_writer.writerow([id, package_name, dependent, {"dependency_patched":True, "dependent_on_vuln_version":False, "created_after_patch":True}])
                             continue
@@ -316,8 +337,8 @@ def get_dependent_patch_info():
                         print([id, package_name, dependent, dependent_info])
                         csv_writer.writerow([id, package_name, dependent, dependent_info])
 
-process_rustsec_jsons() 
-#get_dependent_patch_info()
+#process_rustsec_jsons() 
+get_dependent_patch_info()
 
 
         

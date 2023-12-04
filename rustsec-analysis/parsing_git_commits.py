@@ -2,7 +2,7 @@ import requests
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-access_token = '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'
+access_token = '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'
 
 #Set up headers with the access token
 headers = {
@@ -127,9 +127,12 @@ def get_dependency_version(file_info, s, vulnerable_dependency):
             i = dependency_version.find('version =')
             n = i + len('version =') + 2
             v = dependency_version[n:]
+            print('in version =')
             print(v)
             i_ = v.find('\"')
+            print(i_)
             dependency_version = v[:i_]
+            print(dependency_version)
         return dependency_version.replace('^', '').replace('~', '')
 
     except:
@@ -168,7 +171,7 @@ def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_
                             if s_new in file_info['patch']:
                                 dependency_version_new = get_dependency_version(file_info, s_new, vulnerable_dependency)
                                 dependency_version_old = None
-                                if s_old in vulnerable_dependency:
+                                if s_old in file_info['patch']:
                                     dependency_version_old = get_dependency_version(file_info, s_old, vulnerable_dependency)
 
                                 if dependency_version_old == None:
@@ -184,12 +187,13 @@ def get_info_about_dependency(github_link, repo, vulnerable_dependency, patched_
                                     comparison1 = compare_cargo_versions(dependency_version_old, patched_version)
 
                                 comparison2 = compare_cargo_versions(dependency_version_new, patched_version)
-                                if comparison1 == None or comparison2 == None:
-                                    #print(file_info['patch'])
+                                if comparison2 == None:
+                                    print(file_info['patch'])
                                     break
 
                                 #check that this commit switched dependency from unpatched to patched version
-                                if comparison1 < 0 and comparison2 >= 0:
+                                #not necessary for comparison 1 to work 
+                                if comparison1 != None and comparison1 < 0 and comparison2 >= 0 or comparison1 == None and comparison2 >= 0:
                                     #print("found upgrade to patched version of dependency")
                                     res["found_patch"] = True
                                     print("found patch!")
